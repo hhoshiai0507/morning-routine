@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1D9E75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>朝のルーティーン</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;background:#F1EFE8;color:#2C2C2A;min-height:100vh;overscroll-behavior:none}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#app{max-width:480px;margin:0 auto;padding:16px 16px 80px}
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:4px;border-radius:10px;border:0.5px solid rgba(0,0,0,0.1);position:sticky;top:8px;z-index:10}
+.tab-btn{flex:1;border:none;background:transparent;padding:10px;border-radius:7px;font-size:14px;font-weight:500;color:#888780;cursor:pointer;font-family:inherit}
+.tab-btn.active{background:#2C2C2A;color:#fff}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:16px;margin-bottom:12px}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.metric{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;padding:14px}
+.metric-label{font-size:12px;color:#5F5E5A}
+.metric-val{font-size:26px;font-weight:500;margin-top:4px}
+.metric-unit{font-size:13px;color:#888780;font-weight:400}
+.task{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;user-select:none}
+.task.done{border-color:#1D9E75;background:#F4FBF8}
+.task-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.task-info{flex:1;min-width:0}
+.task-label{font-size:15px;font-weight:500}
+.task.done .task-label{text-decoration:line-through;color:#888780}
+.task-sub{font-size:12px;color:#888780;margin-top:2px}
+.task-check{width:26px;height:26px;border-radius:50%;border:1.5px solid #B4B2A9;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;flex-shrink:0}
+.task.done .task-check{background:#1D9E75;border-color:#1D9E75}
+.bar-track{height:6px;background:#F1EFE8;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;background:#1D9E75;transition:width 0.4s}
+.streak-badge{font-size:12px;background:#FAEEDA;color:#854F0B;padding:4px 10px;border-radius:999px;font-weight:500}
+.cal-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cal-nav button{border:0.5px solid rgba(0,0,0,0.1);background:transparent;width:32px;height:32px;border-radius:7px;font-size:16px;cursor:pointer}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;color:#888780;text-align:center;margin-bottom:6px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-cell{aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;cursor:pointer}
+.cal-cell.empty{cursor:default}
+.cal-cell.today{outline:1.5px solid #2C2C2A;outline-offset:1px}
+.cal-legend{margin-top:14px;padding-top:12px;border-top:0.5px solid rgba(0,0,0,0.1);display:flex;gap:10px;font-size:11px;color:#5F5E5A;flex-wrap:wrap}
+.legend-sq{width:10px;height:10px;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:4px}
+.task-stat-row{margin-bottom:12px}
+.task-stat-head{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.task-stat-sub{color:#888780;font-size:12px}
+.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.badge{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#F1EFE8;opacity:0.4}
+.badge.got{background:#FAEEDA;opacity:1}
+.badge-icon{font-size:22px}
+.badge-name{font-size:10px;font-weight:500;color:#888780}
+.badge.got .badge-name{color:#854F0B}
+.section-title{font-size:13px;font-weight:500;margin-bottom:12px}
+.celebrate{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1D9E75;color:#fff;padding:14px 22px;border-radius:999px;font-size:15px;font-weight:500;z-index:100;animation:pop 1.8s ease;box-shadow:0 4px 20px rgba(29,158,117,0.4)}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(0.3);opacity:0}25%{transform:translate(-50%,-50%) scale(1.1);opacity:1}75%{opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.date-text{font-size:13px;color:#5F5E5A}
+.score-line{display:flex;align-items:baseline;gap:8px;margin-top:6px;margin-bottom:10px}
+.score-big{font-size:34px;font-weight:500}
+.score-total{font-size:14px;color:#888780}
+.install-hint{background:#E6F1FB;border-radius:10px;padding:12px;font-size:13px;color:#0C447C;margin-bottom:12px;display:none}
+.install-hint.show{display:block}
+button.close-hint{float:right;background:none;border:none;color:#0C447C;font-size:18px;cursor:pointer;margin-top:-4px}
+.edit-date-banner{background:#FAEEDA;color:#854F0B;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.edit-date-banner button{background:none;border:none;color:#854F0B;font-weight:500;cursor:pointer;font-size:12px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="install-hint" class="install-hint">
+    <button class="close-hint" onclick="document.getElementById('install-hint').classList.remove('show')">×</button>
+    📱 ホーム画面に追加するとアプリのように使えます（メニュー → ホーム画面に追加）
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="today">今日</button>
+    <button class="tab-btn" data-tab="history">履歴</button>
+    <button class="tab-btn" data-tab="stats">統計</button>
+  </div>
+
+  <div id="view-today">
+    <div id="edit-banner"></div>
+    <div class="card">
+      <div class="header">
+        <span class="date-text" id="today-date"></span>
+        <span class="streak-badge" id="streak-badge">🔥 0日連続</span>
+      </div>
+      <div class="score-line">
+        <span class="score-big" id="today-score">0</span>
+        <span class="score-total">/ 3 達成</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="today-bar" style="width:0%"></div></div>
+    </div>
+    <div id="tasks"></div>
+  </div>
+
+  <div id="view-history" style="display:none">
+    <div class="card">
+      <div class="cal-nav">
+        <button id="prev-month">‹</button>
+        <span id="month-label" style="font-size:15px;font-weight:500"></span>
+        <button id="next-month">›</button>
+      </div>
+      <div class="cal-weekdays">
+        <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+      </div>
+      <div class="cal-grid" id="calendar"></div>
+      <div class="cal-legend">
+        <span><span class="legend-sq" style="background:#1D9E75"></span>全達成</span>
+        <span><span class="legend-sq" style="background:#97C459"></span>2項目</span>
+        <span><span class="legend-sq" style="background:#FAC775"></span>1項目</span>
+        <span><span class="legend-sq" style="background:#F1EFE8;border:0.5px solid rgba(0,0,0,0.1)"></span>未達</span>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:#888780;text-align:center">日付をタップすると編集できます</div>
+    </div>
+  </div>
+
+  <div id="view-stats" style="display:none">
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">現在の連続</div><div class="metric-val"><span id="stat-streak">0</span><span class="metric-unit"> 日</span></div></div>
+      <div class="metric"><div class="metric-label">最長記録</div><div class="metric-val"><span id="stat-best">0</span><span class="metric-unit"> 日</span></div></div>
+      <div class="metric"><div class="metric-label">総達成日</div><div class="metric-val"><span id="stat-total">0</span><span class="metric-unit"> 日</span></div></div>
+      <div class="metric"><div class="metric-label">今月の達成率</div><div class="metric-val"><span id="stat-rate">0</span><span class="metric-unit"> %</span></div></div>
+    </div>
+    <div class="card">
+      <div class="section-title">項目別の達成率（過去30日）</div>
+      <div id="per-task-stats"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">獲得バッジ</div>
+      <div class="badges" id="badges"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">データ管理</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="exportData()" style="flex:1;min-width:100px;padding:10px;border:0.5px solid rgba(0,0,0,0.1);background:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">エクスポート</button>
+        <button onclick="importData()" style="flex:1;min-width:100px;padding:10px;border:0.5px solid rgba(0,0,0,0.1);background:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">インポート</button>
+        <button onclick="resetData()" style="flex:1;min-width:100px;padding:10px;border:0.5px solid rgba(0,0,0,0.1);background:#fff;color:#A32D2D;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">リセット</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+    </div>
+  </div>
+</div>
+
+<script>
+const TASKS = [
+  { id:'wakeup',  label:'5:30 早起き',   sub:'目標 5:30',   icon:'🌅', color:'#FAEEDA' },
+  { id:'english', label:'英語学習',      sub:'30分',        icon:'📘', color:'#E6F1FB' },
+  { id:'reading', label:'読書',          sub:'30分',        icon:'📖', color:'#EEEDFE' },
+  { id:'journal', label:'ジャーナリング', sub:'朝の記録（ボーナス）', icon:'✍️', color:'#E1F5EE' }
+];
+const STORAGE_KEY = 'morning_routine_v1';
+
+let data = loadData();
+let viewingDate = new Date();
+let calMonth = new Date();
+calMonth.setDate(1);
+
+function loadData(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function key(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function getDay(k){ return data[k] || {wakeup:false,english:false,reading:false,journal:false}; }
+function coreScore(day){ return (day.wakeup?1:0)+(day.english?1:0)+(day.reading?1:0); }
+function allDone(day){ return coreScore(day)===3; }
+function isSameDay(a,b){ return key(a)===key(b); }
+
+function renderToday(){
+  const k = key(viewingDate);
+  const day = getDay(k);
+  const today = new Date();
+  const isToday = isSameDay(viewingDate, today);
+
+  const banner = document.getElementById('edit-banner');
+  if(!isToday){
+    banner.innerHTML = `<div class="edit-date-banner"><span>📅 ${viewingDate.toLocaleDateString('ja-JP',{month:'long',day:'numeric'})} を編集中</span><button onclick="goToToday()">今日に戻る</button></div>`;
+  } else {
+    banner.innerHTML = '';
+  }
+
+  document.getElementById('today-date').textContent = viewingDate.toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'long'});
+  const s = coreScore(day);
+  document.getElementById('today-score').textContent = s;
+  document.getElementById('today-bar').style.width = (s/3*100)+'%';
+  document.getElementById('streak-badge').textContent = '🔥 '+currentStreak()+'日連続';
+
+  const c = document.getElementById('tasks');
+  c.innerHTML = '';
+  TASKS.forEach(t=>{
+    const done = !!day[t.id];
+    const row = document.createElement('div');
+    row.className = 'task'+(done?' done':'');
+    row.innerHTML = `
+      <div class="task-icon" style="background:${t.color}">${t.icon}</div>
+      <div class="task-info">
+        <div class="task-label">${t.label}</div>
+        <div class="task-sub">${t.sub}</div>
+      </div>
+      <div class="task-check">${done?'✓':''}</div>`;
+    row.onclick = () => {
+      if(!data[k]) data[k] = {wakeup:false,english:false,reading:false,journal:false};
+      data[k][t.id] = !data[k][t.id];
+      saveData();
+      if(allDone(data[k]) && !done) celebrate();
+      renderAll();
+    };
+    c.appendChild(row);
+  });
+}
+
+function celebrate(){
+  if(navigator.vibrate) navigator.vibrate([50,30,50]);
+  const el = document.createElement('div');
+  el.className = 'celebrate';
+  el.textContent = '🎉 今日も完璧！';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1800);
+}
+
+function renderCalendar(){
+  document.getElementById('month-label').textContent = calMonth.toLocaleDateString('ja-JP',{year:'numeric',month:'long'});
+  const startWeekday = calMonth.getDay();
+  const daysInMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 0).getDate();
+  const cal = document.getElementById('calendar');
+  const today = new Date();
+  cal.innerHTML = '';
+  for(let i=0;i<startWeekday;i++){
+    const e = document.createElement('div');
+    e.className='cal-cell empty';
+    cal.appendChild(e);
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(calMonth.getFullYear(), calMonth.getMonth(), d);
+    const k = key(date);
+    const day = getDay(k);
+    const s = coreScore(day);
+    let bg='#F1EFE8', col='#888780';
+    if(s===3){ bg='#1D9E75'; col='#fff'; }
+    else if(s===2){ bg='#97C459'; col='#173404'; }
+    else if(s===1){ bg='#FAC775'; col='#633806'; }
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell'+(isSameDay(date,today)?' today':'');
+    cell.style.background = bg;
+    cell.style.color = col;
+    cell.textContent = d;
+    cell.onclick = () => {
+      if(date > today) return;
+      viewingDate = date;
+      switchTab('today');
+    };
+    cal.appendChild(cell);
+  }
+}
+
+function currentStreak(){
+  const today = new Date();
+  let s = 0;
+  if(allDone(getDay(key(today)))) s++;
+  const d = new Date(today); d.setDate(d.getDate()-1);
+  for(let i=0;i<3650;i++){
+    if(allDone(getDay(key(d)))){ s++; d.setDate(d.getDate()-1); } else break;
+  }
+  return s;
+}
+function bestStreak(){
+  const keys = Object.keys(data).sort();
+  let best=0, cur=0, prev=null;
+  keys.forEach(k=>{
+    if(allDone(data[k])){
+      if(prev){
+        const pd = new Date(prev), cd = new Date(k);
+        const diff = (cd-pd)/(1000*60*60*24);
+        if(diff===1) cur++; else cur=1;
+      } else cur=1;
+      best = Math.max(best, cur);
+      prev = k;
+    } else { cur=0; prev=null; }
+  });
+  return Math.max(best, currentStreak());
+}
+
+function renderStats(){
+  document.getElementById('stat-streak').textContent = currentStreak();
+  document.getElementById('stat-best').textContent = bestStreak();
+  document.getElementById('stat-total').textContent = Object.values(data).filter(allDone).length;
+  const today = new Date();
+  const prefix = key(today).slice(0,7);
+  const monthKeys = [];
+  const dim = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+  for(let d=1; d<=Math.min(dim, today.getDate()); d++){
+    monthKeys.push(`${prefix}-${String(d).padStart(2,'0')}`);
+  }
+  const monthDone = monthKeys.filter(k=>allDone(getDay(k))).length;
+  document.getElementById('stat-rate').textContent = monthKeys.length?Math.round(monthDone/monthKeys.length*100):0;
+
+  const last30Keys = [];
+  for(let i=29;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); last30Keys.push(key(d)); }
+  const pts = document.getElementById('per-task-stats');
+  pts.innerHTML = '';
+  TASKS.forEach(t=>{
+    const done = last30Keys.filter(k=>getDay(k)[t.id]).length;
+    const pct = Math.round(done/30*100);
+    const row = document.createElement('div');
+    row.className = 'task-stat-row';
+    const barColor = {wakeup:'#BA7517', english:'#185FA5', reading:'#534AB7', journal:'#0F6E56'}[t.id];
+    row.innerHTML = `
+      <div class="task-stat-head">
+        <span>${t.icon} ${t.label}</span>
+        <span class="task-stat-sub">${done}/30日 · ${pct}%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${barColor}"></div></div>`;
+    pts.appendChild(row);
+  });
+
+  const bs = bestStreak();
+  const badges = [
+    {name:'3日連続',  need:3,  icon:'🔥'},
+    {name:'7日連続',  need:7,  icon:'⭐'},
+    {name:'14日連続', need:14, icon:'💎'},
+    {name:'30日連続', need:30, icon:'👑'},
+    {name:'50日達成', need:50, icon:'🏆',  isTotal:true},
+    {name:'100日達成',need:100,icon:'🎖️', isTotal:true},
+    {name:'英語20日', need:20, icon:'📘', isTask:'english'},
+    {name:'読書20日', need:20, icon:'📖', isTask:'reading'}
+  ];
+  const total = Object.values(data).filter(allDone).length;
+  const bc = document.getElementById('badges');
+  bc.innerHTML = '';
+  badges.forEach(b=>{
+    let got;
+    if(b.isTotal) got = total >= b.need;
+    else if(b.isTask) got = Object.values(data).filter(d=>d[b.isTask]).length >= b.need;
+    else got = bs >= b.need;
+    const el = document.createElement('div');
+    el.className = 'badge'+(got?' got':'');
+    el.innerHTML = `<div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div>`;
+    bc.appendChild(el);
+  });
+}
+
+function renderAll(){ renderToday(); renderCalendar(); renderStats(); }
+
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===tab);
+  });
+  ['today','history','stats'].forEach(v=>{
+    document.getElementById('view-'+v).style.display = v===tab?'block':'none';
+  });
+  window.scrollTo(0,0);
+}
+function goToToday(){ viewingDate = new Date(); renderAll(); }
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.onclick = () => switchTab(btn.dataset.tab);
+});
+document.getElementById('prev-month').onclick = ()=>{ calMonth.setMonth(calMonth.getMonth()-1); renderCalendar(); };
+document.getElementById('next-month').onclick = ()=>{ calMonth.setMonth(calMonth.getMonth()+1); renderCalendar(); };
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `routine-backup-${key(new Date())}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(){
+  const input = document.getElementById('import-file');
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if(confirm('既存データを上書きしてインポートしますか？')){
+          data = imported;
+          saveData();
+          renderAll();
+          alert('インポート完了');
+        }
+      } catch(err){ alert('ファイルの読み込みに失敗しました'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+function resetData(){
+  if(confirm('全てのデータを削除しますか？この操作は取り消せません。')){
+    data = {};
+    saveData();
+    renderAll();
+  }
+}
+
+// Show install hint if not already installed
+if(!window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone){
+  setTimeout(()=>document.getElementById('install-hint').classList.add('show'), 500);
+}
+
+// Register service worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(e=>console.log('SW registration failed',e));
+}
+
+renderAll();
+</script>
+</body>
+</html>
